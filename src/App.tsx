@@ -1,10 +1,16 @@
-import { Parent } from "./Components/Parent";
+// import { Parent } from "./Components/Parent";
+
+import { Event } from "./Components/Event";
+
+import { Count } from "./Components/Count";
 
 
 function App() {
   return (
     <div>
-      <Parent />
+      {/* <Parent /> */}
+      <Count/>
+      <Event/>
     </div>
   );
 }
