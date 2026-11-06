@@ -1,6 +1,6 @@
 
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   useReactTable,
@@ -11,123 +11,109 @@ import {
   flexRender,
   type ColumnDef,
   type ColumnFiltersState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
 
-import api from '../Api/axios';
+import api from "../Api/axios";
 
-import type { Employee } from '../Types/employee';
-import type { Department } from '../Types/department';
-import toast from 'react-hot-toast';
+import type { Employee } from "../Types/employee";
+import type { Department } from "../Types/department";
+
+import toast from "react-hot-toast";
+
+// Redux imports
+import {
+  useAppDispatch,
+  useAppSelector,
+} from "../hooks/reduxHooks";
+
+import { fetchEmployees } from "../features/employeeSlice";
 
 function Employees() {
   const navigate = useNavigate();
 
-  // 1. Employee data
-  const [data, setData] = useState<Employee[]>([]);
+  // 1. Redux hooks
+  const dispatch = useAppDispatch();
 
-  // 2. Department data
+  // 2. Get employee data from Redux
+  const {
+    employees: data,
+    loading,
+    error,
+  } = useAppSelector((state) => state.employees);
+
+  // 3. Department data (local state)
   const [departments, setDepartments] = useState<Department[]>([]);
 
-  // 3. Loading and error
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
   // 4. Global search
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [globalFilter, setGlobalFilter] = useState("");
 
   // 5. Department filter
   const [columnFilters, setColumnFilters] =
     useState<ColumnFiltersState>([]);
 
-  // 6. Fetch employees
-  const fetchEmployees = async () => {
+  // 6. Fetch departments
+  const fetchDepartments = async () => {
     try {
-      setLoading(true);
-      setError('');
+      const response = await api.get("/department");
 
-      const response = await api.get('/employee');
-      const employees = response.data.data;
+      const departmentList = Array.isArray(response.data)
+        ? response.data
+        : response.data?.data;
 
-      if (!Array.isArray(employees)) {
-        throw new Error('Invalid employee response');
+      if (Array.isArray(departmentList)) {
+        setDepartments(departmentList);
+      } else {
+        console.error(
+          "Departments are not in array format:",
+          response.data
+        );
+        setDepartments([]);
       }
-
-      setData(employees);
     } catch (err) {
-      console.error('Fetch employees error:', err);
-      setError('Unable to fetch employees.');
-    } finally {
-      setLoading(false);
+      console.error("Fetch departments error:", err);
+      setDepartments([]);
     }
   };
 
-  // 7. Fetch departments
-  const fetchDepartments = async () => {
-  try {
-    const response = await api.get('/department');
-
-    console.log('Department response:', response.data);
-
-    const departmentList = Array.isArray(response.data)
-      ? response.data
-      : response.data?.data;
-
-    if (Array.isArray(departmentList)) {
-      setDepartments(departmentList);
-    } else {
-      console.error('Departments are not in array format:', response.data);
-      setDepartments([]);
-    }
-  } catch (err) {
-    console.error('Fetch departments error:', err);
-    setDepartments([]);
-  }
-};
-
-  // 8. Call both APIs when page loads
+  // 7. Fetch employees and departments when page loads
   useEffect(() => {
-    fetchEmployees();
+    dispatch(fetchEmployees());
     fetchDepartments();
-  }, []);
+  }, [dispatch]);
 
-  // 9. Delete employee
+  // 8. Delete employee
   const handleDelete = async (id: number) => {
-    const confirmDelete = window.confirm(
-      'Are you sure you want to delete this employee?'
-    );
-
-    if (!confirmDelete) return;
-
     try {
       await api.delete(`/employee/${id}`);
 
-      toast.success('Employee deleted successfully!');
+      toast.success("Employee deleted successfully!");
 
-      await fetchEmployees();
+      // Fetch updated employee list through Redux
+      await dispatch(fetchEmployees());
     } catch (err) {
-      console.error('Delete employee error:', err);
-      alert('Unable to delete employee.');
+      console.error("Delete employee error:", err);
+      toast.error("Unable to delete employee.");
     }
   };
 
-  // 10. Define table columns
+  // 9. Define table columns
   const columns: ColumnDef<Employee>[] = [
     {
-      accessorKey: 'id',
-      header: 'Employee ID',
+      accessorKey: "id",
+      header: "Employee ID",
     },
     {
-      accessorKey: 'name',
-      header: 'Employee Name',
+      accessorKey: "name",
+      header: "Employee Name",
     },
     {
-      accessorKey: 'email',
-      header: 'Email',
+      accessorKey: "email",
+      header: "Email",
     },
     {
-      accessorKey: 'dept_id',
-      id: 'dept_id',
-      header: 'Department',
+      accessorKey: "dept_id",
+      id: "dept_id",
+      header: "Department",
 
       cell: ({ getValue }) => {
         const departmentId = Number(getValue());
@@ -141,26 +127,26 @@ function Employees() {
 
       filterFn: (row, columnId, filterValue) => {
         return (
-          filterValue === '' ||
+          filterValue === "" ||
           String(row.getValue(columnId)) === filterValue
         );
       },
     },
     {
-      accessorKey: 'date_of_joining',
-      header: 'Joining Date',
+      accessorKey: "date_of_joining",
+      header: "Joining Date",
 
       cell: ({ getValue }) => {
         const value = getValue<string>();
 
         return value
-          ? new Date(value).toLocaleDateString('en-IN')
-          : '-';
+          ? new Date(value).toLocaleDateString("en-IN")
+          : "-";
       },
     },
     {
-      id: 'actions',
-      header: 'Actions',
+      id: "actions",
+      header: "Actions",
       enableSorting: false,
       enableColumnFilter: false,
 
@@ -186,7 +172,7 @@ function Employees() {
     },
   ];
 
-  // 11. Configure TanStack Table
+  // 10. Configure TanStack Table
   const table = useReactTable({
     data,
     columns,
@@ -211,19 +197,19 @@ function Employees() {
     },
   });
 
-  // 12. Loading state
+  // 11. Loading state
   if (loading) {
     return <p className="p-6">Loading employees...</p>;
   }
 
-  // 13. Error state
+  // 12. Error state
   if (error) {
     return (
       <div className="p-6">
         <p className="text-red-600">{error}</p>
 
         <button
-          onClick={fetchEmployees}
+          onClick={() => dispatch(fetchEmployees())}
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           Retry
@@ -232,29 +218,28 @@ function Employees() {
     );
   }
 
-  // 14. Employee table UI
+  // 13. Employee table UI
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-
       <div className="max-w-7xl mx-auto bg-white p-6 rounded-xl shadow">
 
         <div className="flex justify-between items-center mb-6">
-
           <h1 className="text-2xl font-bold">
             Employee Management
           </h1>
 
           <button
-            onClick={() => navigate('/employees/add')}
+            onClick={() => navigate("/employees/add")}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg"
           >
             Add Employee
           </button>
-
         </div>
 
         {/* Global Search */}
         <input
+          id="employee-search"
+          name="employee-search"
           type="text"
           placeholder="Search employees..."
           value={globalFilter}
@@ -264,26 +249,28 @@ function Employees() {
 
         {/* Department Filter */}
         <div className="mb-4">
-          <label className="block mb-2 font-medium">
+          <label
+            htmlFor="department-filter"
+            className="block mb-2 font-medium"
+          >
             Filter by Department
           </label>
 
           <select
+            id="department-filter"
+            name="department-filter"
             value={
-              (table.getColumn('dept_id')?.getFilterValue() as string) ?? ''
+              (table.getColumn("dept_id")?.getFilterValue() as string) ?? ""
             }
             onChange={(e) =>
-              table.getColumn('dept_id')?.setFilterValue(e.target.value)
+              table.getColumn("dept_id")?.setFilterValue(e.target.value)
             }
             className="border rounded-lg p-3 w-full"
           >
             <option value="">All Departments</option>
 
             {departments.map((department) => (
-              <option
-                key={department.id}
-                value={department.id}
-              >
+              <option key={department.id} value={department.id}>
                 {department.name}
               </option>
             ))}
@@ -292,14 +279,10 @@ function Employees() {
 
         {/* Employee Table */}
         <div className="overflow-x-auto">
-
           <table className="w-full border-collapse">
-
             <thead className="bg-gray-200">
-
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
-
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
@@ -307,9 +290,7 @@ function Employees() {
                     >
                       {header.isPlaceholder ? null : (
                         <button
-                          onClick={
-                            header.column.getToggleSortingHandler()
-                          }
+                          onClick={header.column.getToggleSortingHandler()}
                           disabled={!header.column.getCanSort()}
                           className="font-semibold disabled:cursor-default"
                         >
@@ -319,43 +300,32 @@ function Employees() {
                           )}
 
                           {{
-                            asc: ' 🔼',
-                            desc: ' 🔽',
-                          }[header.column.getIsSorted() as string] ?? ''}
+                            asc: " 🔼",
+                            desc: " 🔽",
+                          }[header.column.getIsSorted() as string] ?? ""}
                         </button>
                       )}
                     </th>
                   ))}
-
                 </tr>
               ))}
-
             </thead>
 
             <tbody>
-
               {table.getRowModel().rows.length > 0 ? (
-
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50">
-
                     {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="border p-3"
-                      >
+                      <td key={cell.id} className="border p-3">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
-                        ) ?? String(cell.renderValue() ?? '')}
+                        ) ?? String(cell.renderValue() ?? "")}
                       </td>
                     ))}
-
                   </tr>
                 ))
-
               ) : (
-
                 <tr>
                   <td
                     colSpan={columns.length}
@@ -364,25 +334,19 @@ function Employees() {
                     No employees found.
                   </td>
                 </tr>
-
               )}
-
             </tbody>
-
           </table>
-
         </div>
 
         {/* Pagination */}
         <div className="flex justify-between items-center mt-5">
-
           <p>
-            Page {table.getState().pagination.pageIndex + 1}
-            {' '}of {table.getPageCount()}
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
           </p>
 
           <div className="flex gap-2">
-
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
@@ -398,13 +362,10 @@ function Employees() {
             >
               Next
             </button>
-
           </div>
-
         </div>
 
       </div>
-
     </div>
   );
 }

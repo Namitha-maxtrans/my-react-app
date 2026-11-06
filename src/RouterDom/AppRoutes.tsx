@@ -4,37 +4,68 @@ import {
   Routes,
   Route,
   Navigate,
-} from 'react-router-dom';
+  Outlet,
+} from "react-router-dom";
 
-import AddEmployee from '../Pages/AddEmployee';
-import Employees from '../Pages/Emlpoyee';
-import EditEmployee from '../Pages/EditEmployee';
+import Login from "../Pages/Login";
+import Register from "../Pages/Register";
 
-function AppRoutes() {
+import AddEmployee from "../Pages/AddEmployee";
+import EditEmployee from "../Pages/EditEmployee";
+import Navbar from "../Components/NavBar";
+import ProtectedRoute from "../Components/ProctectedRoutes";
+import Employees from "../Pages/Emlpoyee";
+
+
+// Layout for protected pages
+function ProtectedLayout() {
+  return (
+    <>
+      <Navbar />
+      <div className="pt-16">
+        <Outlet />
+      </div>
+    </>
+  );
+}
+
+function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Employee Table */}
-        <Route
-          path="/employees"
-          element={<Employees />}
-        />
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* Add Employee Form */}
-        <Route
-          path="/employees/add"
-          element={<AddEmployee />}
-        />
-        <Route
-  path="/employees/edit/:id"
-  element={<EditEmployee />}
-/>
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedLayout />}>
+
+            <Route
+              path="/employees"
+              element={<Employees />}
+            />
+
+            <Route
+              path="/employees/add"
+              element={<AddEmployee />}
+            />
+
+            <Route
+              path="/employees/edit/:id"
+              element={<EditEmployee />}
+            />
+
+            
+
+          </Route>
+        </Route>
 
         {/* Default Route */}
         <Route
           path="/"
-          element={<Navigate to="/employees" replace />}
+          element={<Navigate to="/login" replace />}
         />
 
       </Routes>
@@ -42,4 +73,4 @@ function AppRoutes() {
   );
 }
 
-export default AppRoutes;
+export default AppRouter;
